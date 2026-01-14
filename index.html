@@ -1,0 +1,2248 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Black Wing</title>
+
+  <style>
+    :root{
+      --bg:#07090d;
+      --panel:rgba(255,255,255,.06);
+      --panel2:rgba(255,255,255,.04);
+      --line:rgba(255,255,255,.08);
+      --text:rgba(255,255,255,.92);
+      --muted:rgba(255,255,255,.62);
+      --muted2:rgba(255,255,255,.45);
+      --shadow: 0 30px 90px rgba(0,0,0,.55);
+      --r:18px;
+      --r2:14px;
+
+      --accent:#ffcc00; /* 기본(슈즈란) */
+      --accentHosen:#56b6ff; /* ✅ 호셍(탭/라벨 파랑) */
+      --accentBuso:#b58cff;  /* ✅ 무장전선(탭/라벨 보라) */
+
+      /* ✅ WORLD PANEL ACCENTS (요청: 빨강 -> 노랑 -> 초록) */
+      --wRed:#ff3b3b;
+      --wYel:#ffcc00;
+      --wGrn:#45d36a;
+
+      /* ✅ FACTION PANEL ACCENTS (요청: 슈즈란 검정, 호셍 파랑, 무장전선 보라) */
+      --fSuz:#0b0d12;  /* 거의 블랙 */
+      --fHos:#56b6ff;  /* 파랑 */
+      --fBus:#b58cff;  /* 보라 */
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans KR", Arial, sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(1200px 600px at 50% 0%, rgba(255,255,255,.06), transparent 65%),
+        radial-gradient(900px 500px at 20% 40%, rgba(255,255,255,.04), transparent 60%),
+        var(--bg);
+      overflow-x:hidden;
+      scroll-behavior:smooth;
+    }
+
+    html.scrollLock, body.scrollLock{
+      height:100%;
+      overflow:hidden;
+      overscroll-behavior:none;
+      touch-action:none;
+    }
+
+    /* =========================
+       ✅ MAIN VIDEO BG (ENTER 이후)
+       ========================= */
+    .mainVideoBg{
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity .75s ease;
+      overflow: hidden;
+    }
+    body.entered .mainVideoBg{
+      opacity: 1;
+    }
+    .mainVideoBg video{
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display:block;
+      filter: blur(6px) brightness(0.55) saturate(1.05);
+      transform: scale(1.06);
+    }
+    .mainVideoBg::before{
+      content:"";
+      position:absolute; inset:0;
+      background: rgba(0,0,0,0.20);
+      z-index: 1;
+    }
+    .mainVideoBg::after{
+      content:"";
+      position:absolute; inset:-40px;
+      background: radial-gradient(ellipse at center,
+        rgba(0,0,0,0.05) 0%,
+        rgba(0,0,0,0.35) 72%,
+        rgba(0,0,0,0.55) 100%);
+      pointer-events:none;
+      z-index: 2;
+    }
+
+    /* 기존 레이어들이 비디오보다 위 */
+    .wrap{ position: relative; z-index: 1; }
+    .cover{ z-index: 1200; }
+
+    .cover{
+      position: fixed;
+      inset: 0;
+      z-index: 1200;
+      background-image: url("assets/bg-school.png");
+      background-size: cover;
+      background-position: center;
+      background-repeat:no-repeat;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding: 18px;
+      overflow:hidden;
+
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      transition: opacity .75s ease, transform .75s ease, filter .75s ease;
+      will-change: opacity, transform, filter;
+    }
+    .cover::before{
+      content:"";
+      position:absolute; inset:0;
+      background: rgba(0,0,0,0.55);
+    }
+    .cover::after{
+      content:"";
+      position:absolute; inset:-40px;
+      background: radial-gradient(ellipse at center, rgba(0,0,0,0) 0%, rgba(0,0,0,0.55) 70%, rgba(0,0,0,0.88) 100%);
+      pointer-events:none;
+    }
+    .cover.hidden{
+      opacity: 0;
+      transform: translateY(-10px) scale(1.01);
+      filter: blur(2px);
+      pointer-events:none;
+    }
+
+    .coverCard{
+      position:relative;
+      z-index:1;
+      width: min(820px, 92vw);
+      text-align:center;
+      padding: 22px 18px;
+      border: 1px solid rgba(255,255,255,.14);
+      border-radius: 18px;
+      background: rgba(0,0,0,0.32);
+      backdrop-filter: blur(8px);
+      box-shadow: 0 20px 60px rgba(0,0,0,.65);
+    }
+    .logo{
+      width: min(520px, 78vw);
+      max-height: 32svh;
+      object-fit: contain;
+      display:block;
+      margin: 2px auto 14px;
+      filter: drop-shadow(0 12px 32px rgba(0,0,0,0.85));
+    }
+    .coverTitle{
+      margin: 6px 0 10px;
+      font-weight: 1000;
+      letter-spacing: 0.22em;
+      font-size: clamp(22px, 5.2vw, 44px);
+      line-height:1.1;
+    }
+    .coverDesc{
+      margin: 0 auto 18px;
+      max-width: 56ch;
+      color: rgba(255,255,255,0.88);
+      line-height: 1.65;
+      font-size: clamp(13px, 3.2vw, 16px);
+    }
+    .btn{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:10px;
+      padding: 12px 18px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.20);
+      background: rgba(0,0,0,0.38);
+      color:#fff;
+      text-decoration:none;
+      font-weight: 1000;
+      letter-spacing: 0.10em;
+      user-select:none;
+      cursor:pointer;
+      transition:.15s ease;
+    }
+    .btn:hover{ background: rgba(255,255,255,0.10); }
+
+    .wrap{
+      width:min(1120px, calc(100% - 44px));
+      margin:0 auto;
+      padding:46px 0 90px;
+
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity .75s ease, transform .75s ease;
+      will-change: opacity, transform;
+    }
+    body.entered .wrap{
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .sectionTitle{
+      letter-spacing:.34em;
+      text-transform:uppercase;
+      font-size:12px;
+      color:var(--muted2);
+      margin:42px 0 14px;
+      padding-top:22px;
+      border-top:1px solid rgba(255,255,255,.06);
+    }
+
+    .worldCard{
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+      border:1px solid rgba(255,255,255,.08);
+      border-radius: var(--r);
+      padding:18px 18px;
+      box-shadow: 0 16px 60px rgba(0,0,0,.35);
+    }
+
+    .worldToggleRow{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-top:4px;
+    }
+    .worldToggleBtn{
+      appearance:none;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.18);
+      color: rgba(255,255,255,.82);
+      padding:8px 12px;
+      border-radius: 999px;
+      cursor:pointer;
+      font-weight:900;
+      font-size:12px;
+      letter-spacing:.12em;
+      display:flex;
+      align-items:center;
+      gap:8px;
+      transition:.15s ease;
+      user-select:none;
+    }
+    .worldToggleBtn::before{
+      content:"";
+      width:7px; height:7px; border-radius:50%;
+      background: rgba(255,255,255,.35);
+    }
+    .worldToggleBtn.active{
+      border-color: rgba(255,255,255,.22);
+      background: rgba(255,255,255,.06);
+    }
+    .worldToggleBtn.active::before{
+      background: rgba(255,255,255,.82);
+    }
+
+    .archivePanel{
+      margin-top:14px;
+      min-height: 14px;
+    }
+
+    .tabs{ display:flex; gap:10px; flex-wrap:wrap; margin-top:14px; }
+    .tabBtn{
+      appearance:none; border:1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.18);
+      color: rgba(255,255,255,.82);
+      padding:8px 12px;
+      border-radius: 999px;
+      cursor:pointer;
+      font-weight:900;
+      font-size:12px;
+      letter-spacing:.12em;
+      display:flex;
+      align-items:center;
+      gap:8px;
+      transition:.15s ease;
+    }
+    .tabBtn::before{
+      content:"";
+      width:7px; height:7px; border-radius:50%;
+      background: rgba(255,255,255,.35);
+    }
+    .tabBtn.active{
+      border-color: rgba(255,255,255,.22);
+      background: rgba(255,255,255,.06);
+    }
+    .tabBtn.active::before{ background: var(--accent); }
+    .tabBtn[data-f="HOSEN"].active::before{ background: var(--accentHosen); }
+    .tabBtn[data-f="BUSO"].active::before{ background: var(--accentBuso); }
+
+    .groupHead{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-end;
+      gap:10px;
+      margin:22px 0 10px;
+    }
+    .groupName{
+      font-weight:1000;
+      letter-spacing:.22em;
+      font-size:14px;
+      color: rgba(255,255,255,.9);
+    }
+    .groupCount{
+      font-size:12px;
+      color: var(--muted2);
+      letter-spacing:.16em;
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap:14px;
+    }
+    @media (max-width: 980px){ .grid{grid-template-columns: repeat(3,1fr);} }
+    @media (max-width: 720px){ .grid{grid-template-columns: repeat(2,1fr);} }
+    @media (max-width: 420px){ .grid{grid-template-columns: 1fr;} }
+
+    .charCard{
+      position:relative;
+      border-radius: var(--r2);
+      overflow:hidden;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.03);
+      cursor:pointer;
+      min-height: 250px;
+      box-shadow: 0 14px 45px rgba(0,0,0,.35);
+      transition: transform .12s ease, border-color .12s ease;
+      isolation:isolate;
+    }
+    .charCard:hover{
+      transform: translateY(-2px);
+      border-color: rgba(255,255,255,.18);
+    }
+
+    .thumb{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      display:block;
+      transform: scale(1.01);
+      transition: filter .22s ease, transform .22s ease;
+      filter: contrast(1.03) saturate(1.05);
+    }
+
+    .charCard.locked .thumb{
+      filter: grayscale(1) saturate(0.25) contrast(1.08) brightness(0.78);
+      transform: scale(1.015);
+    }
+    .charCard.locked::after{
+      content:"";
+      position:absolute; inset:0;
+      pointer-events:none;
+      opacity:.55;
+      background:
+        repeating-linear-gradient(
+          0deg,
+          rgba(255,255,255,.04) 0px,
+          rgba(255,255,255,.04) 1px,
+          rgba(0,0,0,0) 2px,
+          rgba(0,0,0,0) 4px
+        ),
+        radial-gradient(600px 260px at 30% 30%, rgba(255,255,255,.06), transparent 55%),
+        radial-gradient(520px 240px at 70% 60%, rgba(255,255,255,.05), transparent 60%);
+      mix-blend-mode: overlay;
+      z-index:2;
+    }
+    .charCard.locked:hover .thumb{
+      filter: grayscale(.45) saturate(.55) contrast(1.1) brightness(0.86);
+    }
+    .charCard.locked:hover::after{ opacity:.35; }
+
+    .charCard.peek .thumb{
+      filter: contrast(1.03) saturate(1.05) !important;
+      transform: scale(1.01);
+    }
+    .charCard.peek::after{ opacity: 0 !important; }
+
+    .charCard.revealFlash{ animation: cardPop .30s ease; }
+    @keyframes cardPop{
+      0%{ transform: translateY(0) scale(1); }
+      60%{ transform: translateY(-2px) scale(1.01); }
+      100%{ transform: translateY(0) scale(1); }
+    }
+    .charCard.revealFlash .thumb{ animation: thumbFlash .34s ease; }
+    @keyframes thumbFlash{
+      0%{ filter: grayscale(1) saturate(.2) contrast(1.2) brightness(0.9); }
+      35%{ filter: grayscale(.2) saturate(1.2) contrast(1.25) brightness(1.18); }
+      100%{ filter: contrast(1.03) saturate(1.05); }
+    }
+    .charCard.revealFlash .glitchOverlay{
+      opacity:1;
+      animation: glitchFade .38s ease forwards;
+    }
+    @keyframes glitchFade{
+      0%{ opacity:1; transform: translateX(-2px); }
+      60%{ opacity:.55; transform: translateX(2px); }
+      100%{ opacity:0; transform: translateX(0); }
+    }
+    .glitchOverlay{
+      position:absolute; inset:0;
+      pointer-events:none;
+      opacity:0;
+      z-index:5;
+      mix-blend-mode: screen;
+      background:
+        linear-gradient(90deg,
+          rgba(255,0,90,.18),
+          rgba(0,220,255,.12),
+          rgba(255,255,255,.06)
+        ),
+        repeating-linear-gradient(
+          90deg,
+          rgba(255,255,255,.05) 0px,
+          rgba(255,255,255,.05) 1px,
+          rgba(0,0,0,0) 2px,
+          rgba(0,0,0,0) 6px
+        );
+    }
+
+    .charOverlay{
+      position:absolute; inset:auto 0 0 0;
+      padding:12px 12px 10px;
+      background: linear-gradient(180deg, transparent, rgba(0,0,0,.60) 35%, rgba(0,0,0,.82));
+      z-index:6;
+    }
+    .charId{
+      font-weight:1000;
+      letter-spacing:.1em;
+      font-size:12px;
+      color: rgba(255,255,255,.9);
+    }
+    .charLine{
+      margin-top:4px;
+      font-size:12px;
+      color: rgba(255,255,255,.72);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .backdrop{
+      position:fixed; inset:0;
+      background: rgba(0,0,0,.78);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:20px;
+      z-index:999;
+      backdrop-filter: blur(10px);
+    }
+    .backdrop.show{ display:flex; }
+
+    .modal{
+      width:min(980px, 100%);
+      border-radius: 22px;
+      overflow:hidden;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(10,12,16,.94);
+      box-shadow: var(--shadow);
+      position:relative;
+      z-index:2;
+      transform: translateY(6px) scale(.99);
+      opacity:0;
+      transition: .18s ease;
+    }
+    .backdrop.show .modal{
+      transform: translateY(0) scale(1);
+      opacity:1;
+    }
+
+    .closeBtn{
+      position:absolute;
+      top:14px; right:14px;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(0,0,0,.25);
+      color: rgba(255,255,255,.9);
+      border-radius: 999px;
+      padding:10px 14px;
+      font-weight:1000;
+      letter-spacing:.12em;
+      cursor:pointer;
+      z-index:3;
+    }
+
+    .modalGrid{
+      display:grid;
+      grid-template-columns: 360px 1fr;
+      min-height: 560px;
+    }
+
+    /* ✅ (원본 유지) */
+    @media (max-width: 860px){
+      .modal{
+        height: 100svh;
+        max-height: 100svh;
+      }
+
+      .modalGrid{
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        min-height: 0;
+      }
+
+      .modalLeft{
+        flex: 0 0 auto;
+        border-right: none;
+        border-bottom: 1px solid rgba(255,255,255,.08);
+      }
+
+      .portraitWrap{
+        max-height: 26svh !important;
+        height: auto;
+      }
+
+      .portrait{
+        object-fit: contain;
+      }
+
+      .modalRight{
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-y: auto;
+        padding-bottom: 32px;
+      }
+    }
+
+    .portraitWrap{
+      width:100%;
+      height:100%;
+      max-height: 560px;
+      border-radius: 18px;
+      overflow:hidden;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.35);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+    .portrait{
+      width:100%;
+      height:100%;
+      object-fit: contain;
+      display:block;
+      filter: contrast(1.03) saturate(1.05);
+    }
+
+    .modalRight{ padding:18px 18px 20px; }
+
+    /* ✅✅✅ [여기부터가 "짤림 제거" 수정 핵심: 아래에 추가/덮어쓰기] */
+    @media (max-width: 860px){
+      /* 1) 모바일에서 backdrop 패딩 때문에 화면이 줄어들며 잘리는 현상 방지 */
+      .backdrop{
+        padding: 0 !important;
+        align-items: stretch !important;
+        justify-content: stretch !important;
+      }
+
+      /* 2) 모달을 화면에 꽉 채우고(상단 잘림 방지), 라운드 제거 */
+      .modal{
+        width: 100% !important;
+        height: 100svh !important;
+        max-height: 100svh !important;
+        border-radius: 0 !important;
+      }
+
+      /* 3) 상단 이미지 영역 "확 줄이기" + 아래 기본 portraitWrap(560px/100%) 덮어쓰기 확정 */
+      .portraitWrap{
+        height: 44svh !important;
+        max-height: 44svh !important;
+      }
+
+      /* 스크롤 부드럽게 */
+      .modalRight{
+        -webkit-overflow-scrolling: touch;
+      }
+    }
+    /* ✅✅✅ [수정 끝] */
+
+    .labelRow{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
+      margin-top:2px;
+    }
+    .factionLabel{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      font-weight:1000;
+      font-size:12px;
+      letter-spacing:.14em;
+      padding:7px 10px;
+      border-radius: 8px;
+      background: rgba(255,255,255,.10);
+      border:1px solid rgba(255,255,255,.12);
+    }
+    .factionDot{
+      width:9px; height:9px;
+      border-radius:50%;
+      background: var(--accent);
+      box-shadow: 0 0 0 3px rgba(255,204,0,.15);
+    }
+    .factionDot.blue{
+      background: var(--accentHosen);
+      box-shadow: 0 0 0 3px rgba(86,182,255,.18);
+    }
+    .factionDot.red{
+      background: var(--accentBuso);
+      box-shadow: 0 0 0 3px rgba(181,140,255,.18);
+    }
+
+    .idLabel{
+      display:inline-flex;
+      align-items:center;
+      font-weight:1000;
+      font-size:12px;
+      letter-spacing:.14em;
+      padding:7px 10px;
+      border-radius: 8px;
+      background: rgba(0,0,0,.25);
+      border:1px solid rgba(255,255,255,.10);
+      color: rgba(255,255,255,.88);
+    }
+
+    .nameKR{
+      font-size:44px;
+      font-weight:1000;
+      letter-spacing:-.02em;
+      line-height:1.05;
+      margin:12px 0 6px;
+    }
+    .nameEN{
+      font-size:20px;
+      font-weight:900;
+      letter-spacing:.06em;
+      margin:0 0 14px;
+      color: rgba(255,255,255,.75);
+    }
+    @media (max-width: 720px){
+      .nameKR{ font-size:36px; }
+      .nameEN{ font-size:18px; }
+    }
+
+    .cards{
+      display:grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap:12px;
+      margin-top:10px;
+    }
+    @media (max-width: 520px){
+      .cards{ grid-template-columns: 1fr; }
+    }
+
+    .infoCard{
+      background: rgba(255,255,255,.04);
+      border:1px solid rgba(255,255,255,.10);
+      border-radius: 16px;
+      overflow:hidden;
+    }
+    .infoHead{
+      padding:12px 14px;
+      background: rgba(0,0,0,.18);
+      border-bottom:1px solid rgba(255,255,255,.08);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+    }
+    .infoTitle{
+      font-weight:1000;
+      letter-spacing:.16em;
+      font-size:12px;
+      color: rgba(255,255,255,.86);
+      text-transform:uppercase;
+    }
+    .infoBody{
+      padding:12px 14px 14px;
+      color: rgba(255,255,255,.86);
+      line-height:1.6;
+      font-size:14px;
+    }
+
+    .kv{
+      display:grid;
+      grid-template-columns: 120px 1fr;
+      gap:8px 12px;
+      font-size:14px;
+      line-height:1.6;
+    }
+    .k{
+      color: rgba(255,255,255,.55);
+      font-weight:1000;
+      letter-spacing:.02em;
+      word-break: keep-all;
+    }
+    .v{
+      color: rgba(255,255,255,.90);
+      word-break: keep-all;
+      overflow-wrap: normal;
+    }
+
+    .noteWide{ grid-column: 1 / -1; }
+
+    .quoteBox{
+      border-left: 4px solid var(--quoteColor, var(--accent));
+      background: rgba(0,0,0,.18);
+      padding: 14px 14px;
+      border-radius: 12px;
+      line-height: 1.65;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.06);
+      white-space: pre-line;
+      color: var(--quoteColor, var(--accent));
+      font-style: italic;
+      letter-spacing: -.01em;
+    }
+    .qMark{
+      color: var(--quoteColor, var(--accent));
+      font-weight: 1000;
+    }
+
+    /* ✅ 소속 탭 전용 */
+    .fPanelGrid{
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+    .fCard{
+      background: var(--panel2);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 14px;
+      padding: 14px 14px 15px;
+      box-shadow: 0 14px 50px rgba(0,0,0,.28);
+      position:relative;
+      overflow:hidden;
+    }
+    .fCard::after{
+      content:"";
+      position:absolute; inset:0;
+      pointer-events:none;
+      background:
+        radial-gradient(900px 260px at 30% 20%, rgba(255,255,255,.05), transparent 60%),
+        radial-gradient(760px 240px at 80% 70%, rgba(255,255,255,.04), transparent 60%);
+      opacity:.8;
+      mix-blend-mode: overlay;
+    }
+    .fHeadRow{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      position:relative;
+      z-index:1;
+    }
+    .fBadgeRow{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    .fBadge{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:7px 10px;
+      border-radius: 10px;
+      background: rgba(0,0,0,.22);
+      border: 1px solid rgba(255,255,255,.10);
+      font-weight:1000;
+      letter-spacing:.08em;
+    }
+    .fTag{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:6px 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.10);
+      color: rgba(255,255,255,.72);
+      font-weight: 900;
+      letter-spacing: .06em;
+      font-size: 12px;
+    }
+    .fMeta{
+      color: rgba(255,255,255,.45);
+      font-size:12px;
+      letter-spacing:.12em;
+    }
+    .fBody{
+      margin-top:10px;
+      color: rgba(255,255,255,.80);
+      line-height:1.85;
+      font-size:14px;
+      position:relative;
+      z-index:1;
+    }
+    .fBody p{ margin:0 0 10px; }
+    .fBody p:last-child{ margin:0; }
+    .fKey{
+      color: rgba(255,255,255,.92);
+      font-weight:1000;
+    }
+    .fRule{
+      margin-top:12px;
+      padding: 12px 12px;
+      border-radius: 12px;
+      background: rgba(0,0,0,.18);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.06);
+      white-space: pre-line;
+      font-style: italic;
+      letter-spacing: -.01em;
+    }
+
+    /* ✅ BGM 패널 (추가) */
+    .bgmGrid{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:12px;
+    }
+    @media (max-width: 720px){
+      .bgmGrid{ grid-template-columns: 1fr; }
+    }
+    .bgmCard{
+      background: var(--panel2);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 14px;
+      padding: 14px 14px 15px;
+      box-shadow: 0 14px 50px rgba(0,0,0,.28);
+      position:relative;
+      overflow:hidden;
+    }
+    .bgmCard::after{
+      content:"";
+      position:absolute; inset:0;
+      pointer-events:none;
+      background:
+        radial-gradient(900px 260px at 30% 20%, rgba(255,255,255,.05), transparent 60%),
+        radial-gradient(760px 240px at 80% 70%, rgba(255,255,255,.04), transparent 60%);
+      opacity:.75;
+      mix-blend-mode: overlay;
+    }
+    .bgmHead{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      position:relative;
+      z-index:1;
+      margin-bottom:10px;
+    }
+    .bgmTitle{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:7px 10px;
+      border-radius: 10px;
+      background: rgba(0,0,0,.22);
+      border: 1px solid rgba(255,255,255,.10);
+      font-weight:1000;
+      letter-spacing:.08em;
+    }
+    .bgmMeta{
+      color: rgba(255,255,255,.45);
+      font-size:12px;
+      letter-spacing:.12em;
+    }
+    .bgmBody{
+      position:relative;
+      z-index:1;
+      color: rgba(255,255,255,.80);
+      line-height:1.75;
+      font-size:14px;
+    }
+    .bgmRow{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
+      margin-top:10px;
+    }
+    .bgmBtn{
+      appearance:none;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(0,0,0,.22);
+      color: rgba(255,255,255,.88);
+      padding:10px 12px;
+      border-radius: 12px;
+      cursor:pointer;
+      font-weight:1000;
+      letter-spacing:.08em;
+      transition:.15s ease;
+      user-select:none;
+    }
+    .bgmBtn:hover{ background: rgba(255,255,255,.08); }
+    .bgmRange{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      width:min(520px, 100%);
+      padding:10px 12px;
+      border-radius: 12px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.18);
+    }
+    .bgmRange input[type="range"]{
+      width: 220px;
+      max-width: 100%;
+    }
+    .bgmSmall{
+      color: rgba(255,255,255,.55);
+      font-size:12px;
+      letter-spacing:.06em;
+    }
+
+    @media (max-width: 520px){
+      .wrap{ width: min(1120px, calc(100% - 28px)); }
+      .closeBtn{ top:12px; right:12px; }
+    }
+
+    @media (prefers-reduced-motion: reduce){
+      *{ animation:none !important; transition:none !important; scroll-behavior:auto !important; }
+    }
+  </style>
+</head>
+
+<body>
+  <!-- ✅ ENTER 이후에만 보이는 움직이는 배경 (무조건 무음) -->
+  <div class="mainVideoBg" aria-hidden="true">
+    <video
+      id="mainBgVideo"
+      src="assets/main-bg.mp4"
+      muted
+      playsinline
+      loop
+      preload="auto"
+    ></video>
+  </div>
+
+  <audio id="bgm" preload="auto">
+    <source src="assets/bgm/reborn.mp3" type="audio/mpeg">
+  </audio>
+
+  <section class="cover" id="top">
+    <div class="coverCard">
+      <img class="logo" src="assets/banner.png" alt="Black Wing Logo" />
+      <div class="coverTitle">BLACK WING</div>
+
+      <!-- ✅ 삭제됨: coverDesc 한글 설명 -->
+
+      <a class="btn" id="enterBtn" href="#main">ENTER</a>
+    </div>
+  </section>
+
+  <div class="wrap" id="main">
+    <!-- ✅ WORLD -> SELECT ARCHIVE -->
+    <div class="sectionTitle">SELECT ARCHIVE</div>
+
+    <div class="worldCard">
+      <div class="worldToggleRow">
+        <button class="worldToggleBtn" id="worldTabBtn" type="button">세계관🌏</button>
+        <button class="worldToggleBtn" id="factionTabBtn" type="button">소속🏳️‍</button>
+        <button class="worldToggleBtn" id="charTabBtn" type="button">등장인물👥️</button>
+        <!-- ✅ 추가: BGM 탭 -->
+        <button class="worldToggleBtn" id="bgmTabBtn" type="button">BGM🎵</button>
+      </div>
+
+      <!-- ✅ 세계관 눌렀을 때만 보임 (기존 그대로) -->
+      <div class="archivePanel" id="worldPanel" style="display:none;">
+        <div style="display:flex; flex-direction:column; gap:12px;">
+
+          <!-- =========================
+               📁 BLACK WING 아카이브 (RED)
+               ========================= -->
+          <div style="
+            background: var(--panel2);
+            border: 1px solid rgba(255,255,255,.08);
+            border-radius: 14px;
+            padding: 14px 14px 15px;
+            border-left: 6px solid var(--wRed);
+          ">
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+              <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                <div style="
+                  display:inline-flex; align-items:center; gap:8px;
+                  padding:7px 10px;
+                  border-radius: 10px;
+                  background: rgba(0,0,0,.22);
+                  border: 1px solid rgba(255,255,255,.10);
+                  font-weight:1000;
+                  letter-spacing:.08em;
+                ">
+                  <span aria-hidden="true">📁</span>
+                  <span>BLACK WING 아카이브</span>
+                </div>
+
+                <div style="
+                  display:inline-flex; align-items:center; gap:8px;
+                  padding:6px 10px;
+                  border-radius: 999px;
+                  background: rgba(255,255,255,.06);
+                  border: 1px solid rgba(255,255,255,.10);
+                  color: rgba(255,255,255,.78);
+                  font-weight: 900;
+                  letter-spacing: .06em;
+                  font-size: 12px;
+                ">
+                  <span aria-hidden="true">✅</span>
+                  <span>현장 요약</span>
+                </div>
+              </div>
+
+              <div style="color: rgba(255,255,255,.45); font-size:12px; letter-spacing:.12em;">
+                ARCHIVE
+              </div>
+            </div>
+
+            <div style="margin-top:10px; color: rgba(255,255,255,.78); line-height:1.8; font-size:14px;">
+              <p style="margin:0 0 10px;">
+                <b style="color: rgba(255,255,255,.92);">아이치현 외곽.</b>
+                버려진 공업지대와 낡은 골목이 이어진 도시다.
+              </p>
+
+              <p style="margin:0 0 10px;">
+                겉으로는 평범한 지방 도시처럼 보이지만,
+                <b style="color: rgba(255,255,255,.92);">밤이 되면 전혀 다른 얼굴</b>을 드러낸다.
+              </p>
+
+              <p style="margin:0 0 10px;">
+                이곳의 학교는 더 이상 교육 기관이 아니다.
+                <b style="color: rgba(255,255,255,.92);">싸움과 폭력</b>,
+                <span style="color: var(--wYel); font-weight:1000;">흡연·문신·도박</span>까지—
+                그 어떤 것에도 제재는 존재하지 않는다.
+              </p>
+
+              <p style="margin:0 0 10px;">
+                경찰도, 교사도, 어른도 이미 개입을 포기한 장소.
+                <span style="color: rgba(255,255,255,.65);">
+                  성적·출석·교칙은 종이에 적힌 형식적인 농담에 불과하다.
+                </span>
+              </p>
+
+              <p style="margin:0;">
+                그리고 이 도시의 한복판에서,
+                <b style="color: rgba(255,255,255,.92);">최악의 문제 학교들</b>이 존재한다.
+              </p>
+            </div>
+          </div>
+
+          <!-- =========================
+               📜 생존 규칙 (Protocol) (YELLOW)
+               ========================= -->
+          <div style="
+            background: var(--panel2);
+            border: 1px solid rgba(255,255,255,.08);
+            border-radius: 14px;
+            padding: 14px 14px 15px;
+            border-left: 6px solid var(--wYel);
+          ">
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+              <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                <div style="
+                  display:inline-flex; align-items:center; gap:8px;
+                  padding:7px 10px;
+                  border-radius: 10px;
+                  background: rgba(0,0,0,.22);
+                  border: 1px solid rgba(255,255,255,.10);
+                  font-weight:1000;
+                  letter-spacing:.08em;
+                ">
+                  <span aria-hidden="true">📜</span>
+                  <span>생존 규칙</span>
+                </div>
+
+                <div style="
+                  display:inline-flex; align-items:center; gap:8px;
+                  padding:6px 10px;
+                  border-radius: 999px;
+                  background: rgba(255,255,255,.06);
+                  border: 1px solid rgba(255,255,255,.10);
+                  color: rgba(255,255,255,.68);
+                  font-weight: 900;
+                  letter-spacing: .06em;
+                  font-size: 12px;
+                ">
+                  <span>Protocol</span>
+                </div>
+              </div>
+
+              <div style="color: rgba(255,255,255,.45); font-size:12px; letter-spacing:.12em;">
+                RULES
+              </div>
+            </div>
+
+            <div style="margin-top:10px; color: rgba(255,255,255,.78); line-height:1.75; font-size:14px;">
+              <div style="display:grid; gap:10px;">
+                <div style="display:flex; gap:10px; align-items:flex-start;">
+                  <div style="min-width:22px; font-weight:1000; color: rgba(255,255,255,.92);">01</div>
+                  <div>먹히던가, 아니면 <span style="color: var(--wRed); font-weight:1000;">먹어 치워라</span>.</div>
+                </div>
+
+                <div style="display:flex; gap:10px; align-items:flex-start;">
+                  <div style="min-width:22px; font-weight:1000; color: rgba(255,255,255,.92);">02</div>
+                  <div>싸움은 ‘끝’이 아니라 ‘시작’이다. 이기면 다음이 온다.</div>
+                </div>
+
+                <div style="display:flex; gap:10px; align-items:flex-start;">
+                  <div style="min-width:22px; font-weight:1000; color: rgba(255,255,255,.92);">03</div>
+                  <div>정상은 존재하지 않는다. 강자를 쓰러뜨리면, 더 강한 존재가 나타난다.</div>
+                </div>
+
+                <div style="display:flex; gap:10px; align-items:flex-start;">
+                  <div style="min-width:22px; font-weight:1000; color: rgba(255,255,255,.92);">04</div>
+                  <div>살아남은 자가 규칙을 정의한다. <span style="color: rgba(255,255,255,.92); font-weight:1000;">패자</span>는 기록조차 남지 않는다.</div>
+                </div>
+
+                <div style="display:flex; gap:10px; align-items:flex-start;">
+                  <div style="min-width:22px; font-weight:1000; color: rgba(255,255,255,.92);">05</div>
+                  <div>이름이 알려진 순간, 표적이 된다.</div>
+                </div>
+              </div>
+
+              <div style="margin-top:12px; color: rgba(255,255,255,.55); font-size:12px; letter-spacing:.06em;">
+                ※ 위 규칙은 “정답”이 아니라 “생존을 위한 최소치”다.
+              </div>
+            </div>
+          </div>
+
+          <!-- =========================
+               🏫 학교 체계 보고 (Institution Overview) (GREEN)
+               ========================= -->
+          <div style="
+            background: var(--panel2);
+            border: 1px solid rgba(255,255,255,.08);
+            border-radius: 14px;
+            padding: 14px 14px 15px;
+            border-left: 6px solid var(--wGrn);
+          ">
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+              <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                <div style="
+                  display:inline-flex; align-items:center; gap:8px;
+                  padding:7px 10px;
+                  border-radius: 10px;
+                  background: rgba(0,0,0,.22);
+                  border: 1px solid rgba(255,255,255,.10);
+                  font-weight:1000;
+                  letter-spacing:.08em;
+                ">
+                  <span aria-hidden="true">🏫</span>
+                  <span>학교 체계 보고</span>
+                </div>
+
+                <div style="
+                  display:inline-flex; align-items:center; gap:8px;
+                  padding:6px 10px;
+                  border-radius: 999px;
+                  background: rgba(255,255,255,.06);
+                  border: 1px solid rgba(255,255,255,.10);
+                  color: rgba(255,255,255,.68);
+                  font-weight: 900;
+                  letter-spacing: .06em;
+                  font-size: 12px;
+                ">
+                  <span>Institution Overview</span>
+                </div>
+              </div>
+
+              <div style="color: rgba(255,255,255,.45); font-size:12px; letter-spacing:.12em;">
+                SYSTEM
+              </div>
+            </div>
+
+            <div style="margin-top:10px; color: rgba(255,255,255,.78); line-height:1.85; font-size:14px;">
+              <p style="margin:0 0 10px;">
+                이 도시에 존재하는 학교들은
+                <span style="color: var(--wYel); font-weight:1000;">더 이상 교육을 목적으로 하지 않는다</span>.
+                명목상으로는 ‘학교’라는 이름을 유지하고 있지만,
+                실질적으로는 <span style="color: rgba(255,255,255,.92); font-weight:1000;">세력 단위</span>,
+                혹은 <span style="color: rgba(255,255,255,.92); font-weight:1000;">조직의 거점</span>에 가깝다.
+              </p>
+
+              <p style="margin:0 0 10px;">
+                교실은 회의실이 되었고, 복도는 전장이 되었으며,
+                체육관과 옥상은 <span style="color: var(--wRed); font-weight:1000;">서열을 증명하는 장소</span>로 변했다.
+              </p>
+
+              <p style="margin:0 0 10px;">
+                학생들은 학년이나 반이 아니라
+                <span style="color: rgba(255,255,255,.92); font-weight:1000;">힘</span>,
+                <span style="color: rgba(255,255,255,.92); font-weight:1000;">영향력</span>,
+                그리고 <span style="color: var(--wGrn); font-weight:1000;">소속</span>으로 구분된다.
+              </p>
+
+              <p style="margin:0 0 10px;">
+                <span style="color: var(--wYel); font-weight:1000;">통</span>이라 불리는 존재가 정점에 서고,
+                그 아래에 <span style="color: rgba(255,255,255,.92); font-weight:1000;">대장·부통·일반 학생</span>이 배치된다.
+                규칙은 학교마다 다르다.
+              </p>
+
+              <p style="margin:0 0 10px;">
+                그러나 공통점은 하나다.
+                <span style="color: rgba(255,255,255,.92); font-weight:1000;">약자</span>는 보호받지 못하고,
+                <span style="color: var(--wRed); font-weight:1000;">강자</span>는 언제나 시험받는다.
+              </p>
+
+              <p style="margin:0;">
+                이곳에서 학교란 배움을 위한 공간이 아니라,
+                <span style="color: var(--wGrn); font-weight:1000;">버텨낸 자만이 이름을 남길 수 있는 시험장</span>이다.
+              </p>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ✅ 소속 눌렀을 때만 보임 (기존 그대로) -->
+      <div class="archivePanel" id="factionPanel" style="display:none;">
+        <div class="fPanelGrid">
+          <!-- (이하 내용 동일 - 원본 그대로) -->
+          <!-- =========================
+               🐦‍⬛ SUZURAN (BLACK)
+               ========================= -->
+          <div class="fCard" style="border-left:6px solid var(--fSuz);">
+            <div class="fHeadRow">
+              <div class="fBadgeRow">
+                <div class="fBadge">
+                  <span aria-hidden="true">🐦‍⬛</span>
+                  <span>슈즈란 (Suzuran)</span>
+                </div>
+                <div class="fTag" style="color: rgba(255,255,255,.78);">
+                  <span style="color: var(--accent); font-weight:1000;">"우리들은 까마귀다."</span>
+                </div>
+              </div>
+              <div class="fMeta">SCHOOL</div>
+            </div>
+
+            <div class="fBody">
+              <p>
+                <span class="fKey">특징:</span>
+                자유분방한 분위기 속에서 <span style="color: var(--accent); font-weight:1000;">강함</span>이 곧 규칙이다.
+                학년·반보다 <span class="fKey">개인의 힘과 명성</span>이 우선이며,
+                <span style="color: rgba(255,255,255,.92); font-weight:1000;">소문과 평판</span>이 빠르게 퍼진다.
+              </p>
+
+              <p>
+                <span class="fKey">학교 소개:</span>
+                사람들은 그곳을 <span style="color: var(--accent); font-weight:1000;">‘까마귀 고등학교’</span>라 부른다.
+                정식 교명보다 그 별명이 더 유명하다.
+                이유는 간단하다. 교문을 넘는 순간부터,
+                <span style="color: rgba(255,255,255,.92); font-weight:1000;">인간이 인간을 사람 취급하지 않는</span>
+                풍경이 펼쳐지기 때문이다.
+              </p>
+
+              <p>
+                검은 교복이든, 가죽 재킷이든, 후드든…
+                복도와 계단에 무리 지어 늘어선 놈들은 하나같이
+                까마귀 떼처럼 까맣고 시끄럽다.
+                <span style="color: rgba(255,255,255,.92); font-weight:1000;">웃음은 조롱</span>이고,
+                <span style="color: rgba(255,255,255,.92); font-weight:1000;">친절은 미끼</span>다.
+                상처 냄새를 맡는 속도만큼은 누구보다 빠르다.
+              </p>
+
+              <div class="fRule" style="color: rgba(255,255,255,.86);">
+                그리고 그 까마귀들은 <span style="color: var(--wRed); font-weight:1000;">약한 걸 보면 꼭 쪼아댄다</span>.
+                한 번 쪼이면 끝이 아니다.
+                피가 멈출 때까지, 주변 까마귀들이 더 몰려온다.
+              </div>
+            </div>
+          </div>
+
+          <!-- =========================
+               🕊️ HOSEN (BLUE)
+               ========================= -->
+          <div class="fCard" style="border-left:6px solid var(--fHos);">
+            <div class="fHeadRow">
+              <div class="fBadgeRow">
+                <div class="fBadge">
+                  <span aria-hidden="true">🕊️</span>
+                  <span>호셍 (HOSEN)</span>
+                </div>
+                <div class="fTag" style="color: rgba(255,255,255,.78);">
+                  <span style="color: var(--accentHosen); font-weight:1000;">"질서로 누르고, 규율로 묶는다."</span>
+                </div>
+              </div>
+              <div class="fMeta">SCHOOL</div>
+            </div>
+
+            <div class="fBody">
+              <p>
+                <span class="fKey">특징:</span>
+                조직력이 강하고 <span style="color: var(--accentHosen); font-weight:1000;">규칙</span>이 명확하다.
+                <span class="fKey">상하관계</span>가 분명하며, 이곳에서도 싸움은 금지되지 않는다.
+                다만 <span style="color: rgba(255,255,255,.92); font-weight:1000;">허락 없는 싸움</span>이 금지될 뿐이다.
+                호셍의 규칙은 단순하다.
+                <span style="color: var(--accentHosen); font-weight:1000;">“질서를 어기는 놈은, 적이다.”</span>
+              </p>
+
+              <p>
+                <span class="fKey">학교 소개:</span>
+                호셍은 겉보기엔 가장 <span style="color: rgba(255,255,255,.92); font-weight:1000;">‘정상적인 학교’</span>에 가깝다.
+                교복은 단정하고, 복도는 조용하며, 학생들은 정해진 동선대로 움직인다.
+                하지만 그 질서는 <span style="color: var(--wYel); font-weight:1000;">자율</span>이 아니라
+                <span style="color: var(--accentHosen); font-weight:1000;">통제</span>로 유지된다.
+              </p>
+
+              <p>
+                이곳의 싸움은 우발적이지 않다.
+                모든 충돌은 <span class="fKey">보고</span>되고, <span class="fKey">승인</span>되고, <span class="fKey">실행</span>된다.
+                허락받지 않은 폭력은 규칙 위반이며,
+                규칙 위반자는 곧 <span style="color: rgba(255,255,255,.92); font-weight:1000;">공동의 적</span>이 된다.
+              </p>
+
+              <div class="fRule" style="color: rgba(255,255,255,.86);">
+                호셍에서는 <span style="color: rgba(255,255,255,.92); font-weight:1000;">힘보다 복종</span>이 먼저다.
+                개인의 감정은 중요하지 않으며, 명령은 항상 위에서 아래로 떨어진다.
+                여기서 살아남는 방법은 단 하나.
+                <span style="color: var(--accentHosen); font-weight:1000;">규칙을 따르거나, 규칙에 의해 제거되는 것.</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- =========================
+               ☠️ BUSO (PURPLE)
+               ========================= -->
+          <div class="fCard" style="border-left:6px solid var(--fBus);">
+            <div class="fHeadRow">
+              <div class="fBadgeRow">
+                <div class="fBadge">
+                  <span aria-hidden="true">☠️</span>
+                  <span>무장전선 (BUSO)</span>
+                </div>
+                <div class="fTag" style="color: rgba(255,255,255,.78);">
+                  <span style="color: var(--accentBuso); font-weight:1000;">"우린 너희들 같은 원숭이가 아니야."</span>
+                </div>
+              </div>
+              <div class="fMeta">ALLIANCE</div>
+            </div>
+
+            <div class="fBody">
+              <p>
+                <span class="fKey">특징:</span>
+                학교 바깥에서 움직이는 <span style="color: var(--accentBuso); font-weight:1000;">연합</span> 세력.
+                퇴학·자퇴자들을 중심으로 구성되었으며,
+                <span class="fKey">실전 감각</span>이 뛰어나다.
+                목적을 위해 수단을 가리지 않으며,
+                슈즈란과 호셍을 ‘정상’만 바라보며 달려드는
+                <span style="color: rgba(255,255,255,.92); font-weight:1000;">미성숙한 존재</span>—침팬지 정도로 취급한다.
+              </p>
+
+              <div class="fRule" style="color: rgba(255,255,255,.86);">
+                무장전선은 학교에 속하지 않는다.
+                정확히 말하면, <span style="color: rgba(255,255,255,.92); font-weight:1000;">학교라는 개념을 이미 버린 자들</span>이다.
+                그들은 교실에서 싸우다 쫓겨난 놈들,
+                규칙에 질려 등을 돌린 놈들,
+                혹은 규칙을 부숴버린 뒤 남은 잔해들로 이루어져 있다.
+
+                무장전선에게 학교는 전장이 아니다.
+                <span style="color: var(--accentBuso); font-weight:1000;">이미 끝난 장소</span>다.
+
+                그들이 싸우는 곳은 골목, 폐공장, 고가도로 아래—
+                도망칠 수 없고, 책임질 어른도 없는 <span style="color: var(--wYel); font-weight:1000;">진짜 바깥</span>이다.
+
+                슈즈란은 본능으로 덤비고,
+                호셍은 규칙에 기대 싸운다.
+                하지만 무장전선은 다르다.
+                이들은 싸움을 계산하고, <span style="color: var(--wRed); font-weight:1000;">결과를 감당</span>한다.
+
+                그들이 학교를 비웃는 이유는 단순하다.
+                아직도 그 안에서
+                ‘자기들끼리의 질서’를 세계 전부라 착각하고 있기 때문이다.
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ✅ 추가: BGM 눌렀을 때만 보임 -->
+      <div class="archivePanel" id="bgmPanel" style="display:none;">
+        <div class="bgmGrid">
+          <div class="bgmCard" style="border-left:6px solid var(--wYel);">
+            <div class="bgmHead">
+              <div class="bgmTitle"><span aria-hidden="true">🎵</span><span>BGM 컨트롤</span></div>
+              <div class="bgmMeta">AUDIO</div>
+            </div>
+
+            <div class="bgmBody">
+              <div style="color: rgba(255,255,255,.86); font-weight:1000; letter-spacing:.06em;">
+                현재 트랙: <span id="bgmTrackName" style="color: var(--wYel);">reborn.mp3</span>
+              </div>
+
+              <div class="bgmRow">
+                <button class="bgmBtn" id="bgmPlayBtn" type="button">PLAY</button>
+                <button class="bgmBtn" id="bgmPauseBtn" type="button">PAUSE</button>
+                <button class="bgmBtn" id="bgmStopBtn" type="button">STOP</button>
+              </div>
+
+              <div class="bgmRow">
+                <div class="bgmRange">
+                  <div style="font-weight:1000; letter-spacing:.08em;">VOL</div>
+                  <input id="bgmVol" type="range" min="0" max="1" step="0.01" value="0.35" />
+                  <div id="bgmVolText" style="min-width:52px; text-align:right; font-weight:1000; color: rgba(255,255,255,.82);">
+                    35%
+                  </div>
+                </div>
+              </div>
+
+              <div class="bgmRow">
+                <label class="bgmRange" style="justify-content:space-between;">
+                  <div style="display:flex; align-items:center; gap:10px;">
+                    <div style="font-weight:1000; letter-spacing:.08em;">LOOP</div>
+                    <div class="bgmSmall">끝나면 자동 반복</div>
+                  </div>
+                  <input id="bgmLoop" type="checkbox" />
+                </label>
+              </div>
+
+              <!-- ✅ [요청 수정] 모바일 자동재생 안내 문구 삭제 -->
+            </div>
+          </div>
+
+          <div class="bgmCard" style="border-left:6px solid var(--wGrn);">
+            <div class="bgmHead">
+              <div class="bgmTitle"><span aria-hidden="true">🛈</span><span>상태</span></div>
+              <div class="bgmMeta">STATUS</div>
+            </div>
+
+            <div class="bgmBody">
+              <div style="display:grid; gap:10px;">
+                <div style="display:flex; justify-content:space-between; gap:10px;">
+                  <div class="bgmSmall">재생 상태</div>
+                  <div id="bgmState" style="font-weight:1000; color: rgba(255,255,255,.86);">PAUSED</div>
+                </div>
+                <div style="display:flex; justify-content:space-between; gap:10px;">
+                  <div class="bgmSmall">현재 시간</div>
+                  <div id="bgmTime" style="font-weight:1000; color: rgba(255,255,255,.86);">0:00</div>
+                </div>
+                <div style="display:flex; justify-content:space-between; gap:10px;">
+                  <div class="bgmSmall">총 길이</div>
+                  <div id="bgmDur" style="font-weight:1000; color: rgba(255,255,255,.86);">-:--</div>
+                </div>
+              </div>
+
+              <!-- ✅ [요청 수정] TIP 박스(ENTER/모바일 재생 안내) 삭제 -->
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ✅ 등장인물 눌렀을 때만 보임 -->
+      <div class="tabs" id="tabs" style="display:none;">
+        <button class="tabBtn" data-f="SUZURAN">SUZURAN</button>
+        <button class="tabBtn" data-f="HOSEN">HOSEN</button>
+        <button class="tabBtn" data-f="BUSO">BUSO</button>
+      </div>
+    </div>
+
+    <div class="sectionTitle" id="charactersTitle" style="display:none;">CHARACTERS</div>
+    <div id="groups" style="display:none;"></div>
+  </div>
+
+  <div class="backdrop" id="backdrop" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-label="Character Detail">
+      <button class="closeBtn" id="closeBtn">CLOSE</button>
+
+      <div class="modalGrid">
+        <div class="modalLeft">
+          <div class="portraitWrap">
+            <img class="portrait" id="portrait" alt="character"/>
+          </div>
+        </div>
+
+        <div class="modalRight">
+          <div class="labelRow">
+            <div class="factionLabel">
+              <span class="factionDot" id="factionDot"></span>
+              <span id="factionText">SUZURAN</span>
+            </div>
+            <div class="idLabel" id="idText">SUZ-01</div>
+          </div>
+
+          <h1 class="nameKR" id="nameKR">사키</h1>
+          <h2 class="nameEN" id="nameEN">Saki</h2>
+
+          <div class="cards">
+            <div class="infoCard">
+              <div class="infoHead"><div class="infoTitle">BASIC</div></div>
+              <div class="infoBody">
+                <div class="kv">
+                  <div class="k">반/나이</div><div class="v" id="rowClassAge">-</div>
+                  <div class="k">포지션</div><div class="v" id="rowPos">-</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="infoCard">
+              <div class="infoHead"><div class="infoTitle">PERSONALITY</div></div>
+              <div class="infoBody">
+                <div class="kv">
+                  <div class="k">성격</div><div class="v" id="rowPer">-</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="infoCard noteWide">
+              <div class="infoHead"><div class="infoTitle">NOTES</div></div>
+              <div class="infoBody">
+                <div class="quoteBox" id="rowQuote" style="--quoteColor: var(--accent);">
+                  <span class="qMark">"</span><span id="quoteText"></span><span class="qMark">"</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // =========================
+    // ✅ MAIN VIDEO BG CONTROL
+    // =========================
+    const mainBgVideo = document.getElementById("mainBgVideo");
+
+    function stopMainVideo(){
+      if(!mainBgVideo) return;
+      try{
+        mainBgVideo.muted = true;
+        mainBgVideo.volume = 0;
+        mainBgVideo.pause();
+        mainBgVideo.currentTime = 0;
+      }catch(e){}
+    }
+
+    async function playMainVideo(){
+      if(!mainBgVideo) return;
+      try{
+        mainBgVideo.muted = true;
+        mainBgVideo.volume = 0;
+        await mainBgVideo.play();
+      }catch(err){
+        console.log("Main video autoplay blocked or failed:", err);
+      }
+    }
+
+    // =========================
+    // ENTER / COVER
+    // =========================
+    const rootEl = document.documentElement;
+    const coverEl = document.querySelector(".cover");
+    const enterBtn = document.getElementById("enterBtn");
+    let isEntered = false;
+
+    function lockScroll(){
+      rootEl.classList.add("scrollLock");
+      document.body.classList.add("scrollLock");
+      window.scrollTo(0,0);
+    }
+    function unlockScroll(){
+      rootEl.classList.remove("scrollLock");
+      document.body.classList.remove("scrollLock");
+    }
+
+    function blockScrollEvent(e){
+      if(isEntered) return;
+      e.preventDefault();
+    }
+    function blockKeys(e){
+      if(isEntered) return;
+      const keys = ["ArrowDown","ArrowUp","PageDown","PageUp","Home","End"," ","Spacebar"];
+      if(keys.includes(e.key)) e.preventDefault();
+    }
+
+    window.addEventListener("wheel", blockScrollEvent, { passive:false });
+    window.addEventListener("touchmove", blockScrollEvent, { passive:false });
+    window.addEventListener("keydown", blockKeys);
+
+    function showCover(noHistory){
+      isEntered = false;
+      document.body.classList.remove("entered");
+      lockScroll();
+
+      stopMainVideo();
+
+      if(coverEl){
+        coverEl.style.display = "flex";
+        void coverEl.offsetHeight;
+        coverEl.classList.remove("hidden");
+      }
+      window.scrollTo(0,0);
+
+      if(!noHistory){
+        history.replaceState({ screen:"cover" }, "", "#top");
+      }
+    }
+
+    function enterMain(pushHistory){
+      if(isEntered) return;
+      isEntered = true;
+
+      document.body.classList.add("entered");
+      unlockScroll();
+      window.scrollTo(0,0);
+
+      if(coverEl){
+        coverEl.classList.add("hidden");
+        window.setTimeout(()=>{
+          if(isEntered) coverEl.style.display = "none";
+        }, 780);
+      }
+
+      playMainVideo();
+
+      if(pushHistory){
+        history.pushState({ screen:"main" }, "", "#main");
+      }
+
+      // ✅ [요청 수정] ENTER로 진입하면 "세계관" 탭 자동 오픈
+      try{ setWorldTab(true); }catch(e){}
+    }
+
+    if(history.state?.screen === "main" || location.hash === "#main"){
+      isEntered = true;
+      document.body.classList.add("entered");
+      unlockScroll();
+      if(coverEl){
+        coverEl.style.display = "none";
+        coverEl.classList.add("hidden");
+      }
+      history.replaceState({ screen:"main" }, "", "#main");
+
+      playMainVideo();
+    }else{
+      showCover(true);
+      history.replaceState({ screen:"cover" }, "", "#top");
+    }
+
+    window.addEventListener("popstate", (e)=>{
+      const s = e.state?.screen;
+      if(s === "main"){
+        isEntered = true;
+        document.body.classList.add("entered");
+        unlockScroll();
+        if(coverEl){
+          coverEl.style.display = "none";
+          coverEl.classList.add("hidden");
+        }
+        window.scrollTo(0,0);
+
+        playMainVideo();
+
+        // ✅ [요청 수정] 뒤로/앞으로로 main 진입해도 "세계관" 탭 자동 오픈
+        try{ setWorldTab(true); }catch(e){}
+      }else{
+        showCover(true);
+      }
+    });
+
+    // =========================
+    // ✅ BGM
+    // =========================
+    const bgm = document.getElementById("bgm");
+    if(bgm) bgm.volume = 0.35;
+
+    async function startBgm(){
+      if(!bgm) return;
+      try{
+        if(!bgm.paused) return;
+        await bgm.play();
+      }catch(err){
+        console.log("BGM play blocked or failed:", err);
+      }
+    }
+
+    // ✅ loop 체크에 맞춰 종료동작 처리
+    if(bgm){
+      bgm.addEventListener("ended", ()=>{
+        if(bgm.loop) return;
+        bgm.pause();
+        bgm.currentTime = 0;
+      });
+    }
+
+    if(enterBtn){
+      enterBtn.addEventListener("click", (e)=>{
+        e.preventDefault();
+        startBgm();
+        enterMain(true);
+      });
+    }
+
+    // ✅ [요청 수정] 커버 화면 아무 곳이나 클릭/터치해도 메인으로 진입
+    if(coverEl){
+      coverEl.addEventListener("click", (e)=>{
+        if(isEntered) return;
+        if(e.target.closest("#enterBtn")) return; // ENTER 버튼은 기존 로직 유지
+        startBgm();
+        enterMain(true);
+      });
+    }
+
+    window.addEventListener("pointerdown", startBgm, { once:true });
+
+    // =========================
+    // ✅ SELECT ARCHIVE: 세계관 / 소속 / 등장인물 / BGM 토글
+    // =========================
+    const tabsEl = document.getElementById("tabs");
+    const charTabBtn = document.getElementById("charTabBtn");
+    const groupsEl = document.getElementById("groups");
+
+    const worldTabBtn = document.getElementById("worldTabBtn");
+    const worldPanel = document.getElementById("worldPanel");
+
+    const factionTabBtn = document.getElementById("factionTabBtn");
+    const factionPanel = document.getElementById("factionPanel");
+
+    // ✅ 추가: BGM 탭 요소
+    const bgmTabBtn = document.getElementById("bgmTabBtn");
+    const bgmPanel = document.getElementById("bgmPanel");
+
+    const charactersTitle = document.getElementById("charactersTitle");
+
+    let isCharTabOpen = false;
+    let isWorldTabOpen = false;
+    let isFactionTabOpen = false;
+    let isBgmTabOpen = false; // ✅ 추가
+
+    let hasSelectedFaction = false;
+    let currentFaction = null;
+
+    function setCharactersSectionVisible(on){
+      const show = !!on;
+      if(charactersTitle) charactersTitle.style.display = show ? "block" : "none";
+      if(groupsEl) groupsEl.style.display = show ? "block" : "none";
+    }
+
+    function clearCharacters(){
+      if(groupsEl) groupsEl.innerHTML = "";
+    }
+    function clearTabActive(){
+      document.querySelectorAll(".tabBtn").forEach(b=> b.classList.remove("active"));
+    }
+
+    function setWorldTab(open){
+      isWorldTabOpen = !!open;
+
+      if(worldPanel) worldPanel.style.display = isWorldTabOpen ? "block" : "none";
+      if(worldTabBtn) worldTabBtn.classList.toggle("active", isWorldTabOpen);
+
+      if(isWorldTabOpen){
+        setCharTab(false);
+        setFactionTab(false);
+        setBgmTab(false); // ✅ 추가
+        setCharactersSectionVisible(false);
+      }
+    }
+
+    function setFactionTab(open){
+      isFactionTabOpen = !!open;
+
+      if(factionPanel) factionPanel.style.display = isFactionTabOpen ? "block" : "none";
+      if(factionTabBtn) factionTabBtn.classList.toggle("active", isFactionTabOpen);
+
+      if(isFactionTabOpen){
+        setWorldTab(false);
+        setCharTab(false);
+        setBgmTab(false); // ✅ 추가
+        setCharactersSectionVisible(false);
+      }
+    }
+
+    function setBgmTab(open){
+      isBgmTabOpen = !!open;
+
+      if(bgmPanel) bgmPanel.style.display = isBgmTabOpen ? "block" : "none";
+      if(bgmTabBtn) bgmTabBtn.classList.toggle("active", isBgmTabOpen);
+
+      if(isBgmTabOpen){
+        setWorldTab(false);
+        setFactionTab(false);
+        setCharTab(false);
+        setCharactersSectionVisible(false);
+      }
+    }
+
+    function setCharTab(open){
+      isCharTabOpen = !!open;
+
+      if(tabsEl) tabsEl.style.display = isCharTabOpen ? "flex" : "none";
+      if(charTabBtn) charTabBtn.classList.toggle("active", isCharTabOpen);
+
+      if(isCharTabOpen){
+        if(isWorldTabOpen) setWorldTab(false);
+        if(isFactionTabOpen) setFactionTab(false);
+        if(isBgmTabOpen) setBgmTab(false); // ✅ 추가
+        setCharactersSectionVisible(true);
+      }
+
+      if(!isCharTabOpen){
+        hasSelectedFaction = false;
+        currentFaction = null;
+        clearTabActive();
+        clearCharacters();
+        setCharactersSectionVisible(false);
+      }else{
+        if(!hasSelectedFaction){
+          currentFaction = null;
+          clearTabActive();
+          clearCharacters();
+        }
+      }
+    }
+
+    if(worldTabBtn){
+      worldTabBtn.addEventListener("click", ()=>{
+        setWorldTab(!isWorldTabOpen);
+      });
+    }
+
+    if(factionTabBtn){
+      factionTabBtn.addEventListener("click", ()=>{
+        setFactionTab(!isFactionTabOpen);
+      });
+    }
+
+    if(charTabBtn){
+      charTabBtn.addEventListener("click", ()=>{
+        setCharTab(!isCharTabOpen);
+      });
+    }
+
+    // ✅ 추가: BGM 탭 클릭
+    if(bgmTabBtn){
+      bgmTabBtn.addEventListener("click", ()=>{
+        setBgmTab(!isBgmTabOpen);
+      });
+    }
+
+    // 초기 상태
+    setWorldTab(false);
+    setFactionTab(false);
+    setCharTab(false);
+    setBgmTab(false); // ✅ 추가
+    clearCharacters();
+    setCharactersSectionVisible(false);
+
+    // ✅ [요청 수정] 페이지가 이미 main으로 열린 경우에도 세계관 자동 오픈
+    if(isEntered){
+      setWorldTab(true);
+    }
+
+    // =========================
+    // ✅ BGM UI 컨트롤 (추가)
+    // =========================
+    const bgmPlayBtn = document.getElementById("bgmPlayBtn");
+    const bgmPauseBtn = document.getElementById("bgmPauseBtn");
+    const bgmStopBtn = document.getElementById("bgmStopBtn");
+
+    const bgmVol = document.getElementById("bgmVol");
+    const bgmVolText = document.getElementById("bgmVolText");
+    const bgmLoop = document.getElementById("bgmLoop");
+
+    const bgmState = document.getElementById("bgmState");
+    const bgmTime = document.getElementById("bgmTime");
+    const bgmDur = document.getElementById("bgmDur");
+
+    const bgmTrackName = document.getElementById("bgmTrackName");
+
+    function fmtTime(sec){
+      if(!isFinite(sec) || sec < 0) return "-:--";
+      const m = Math.floor(sec / 60);
+      const s = Math.floor(sec % 60);
+      return `${m}:${String(s).padStart(2,"0")}`;
+    }
+
+    function updateBgmUi(){
+      if(!bgm) return;
+      if(bgmState) bgmState.textContent = bgm.paused ? "PAUSED" : "PLAYING";
+      if(bgmTime) bgmTime.textContent = fmtTime(bgm.currentTime || 0);
+      if(bgmDur) bgmDur.textContent = fmtTime(bgm.duration);
+    }
+
+    if(bgm){
+      // 트랙명 표시(현재 src 기준)
+      try{
+        const src = bgm.currentSrc || bgm.querySelector("source")?.getAttribute("src") || "";
+        const name = src ? src.split("/").pop() : "bgm";
+        if(bgmTrackName) bgmTrackName.textContent = name;
+      }catch(e){}
+
+      if(bgmVol){
+        bgmVol.value = String(bgm.volume ?? 0.35);
+        if(bgmVolText) bgmVolText.textContent = `${Math.round((bgm.volume ?? 0.35) * 100)}%`;
+      }
+    }
+
+    if(bgmPlayBtn){
+      bgmPlayBtn.addEventListener("click", async ()=>{
+        await startBgm();
+        updateBgmUi();
+      });
+    }
+    if(bgmPauseBtn){
+      bgmPauseBtn.addEventListener("click", ()=>{
+        if(!bgm) return;
+        bgm.pause();
+        updateBgmUi();
+      });
+    }
+    if(bgmStopBtn){
+      bgmStopBtn.addEventListener("click", ()=>{
+        if(!bgm) return;
+        bgm.pause();
+        bgm.currentTime = 0;
+        updateBgmUi();
+      });
+    }
+
+    if(bgmVol){
+      bgmVol.addEventListener("input", ()=>{
+        if(!bgm) return;
+        const v = Math.max(0, Math.min(1, Number(bgmVol.value)));
+        bgm.volume = v;
+        if(bgmVolText) bgmVolText.textContent = `${Math.round(v * 100)}%`;
+      });
+    }
+
+    if(bgmLoop){
+      bgmLoop.addEventListener("change", ()=>{
+        if(!bgm) return;
+        bgm.loop = !!bgmLoop.checked;
+      });
+    }
+
+    if(bgm){
+      bgm.addEventListener("play", updateBgmUi);
+      bgm.addEventListener("pause", updateBgmUi);
+      bgm.addEventListener("timeupdate", updateBgmUi);
+      bgm.addEventListener("loadedmetadata", updateBgmUi);
+    }
+    updateBgmUi();
+
+    // =========================
+    // 캐릭터 데이터 / 렌더 / 모달
+    // =========================
+    const characters = [
+      /* ========================= SUZURAN ========================= */
+      { id:"SUZ-01", faction:"SUZURAN", img:"assets/suzuran/SUZ-01.png",
+        nameKR:"사키", nameEN:"Saki", age:"17세", classInfo:"1학년 1-A", position:"1-A 대장",
+        personality:"활발·밝음·책임감",
+        quoteColor:"#ffcc00",
+        quote:`내가 앞에 서면, 다들 안 다친다.`
+      },
+      { id:"SUZ-02", faction:"SUZURAN", img:"assets/suzuran/SUZ-02.png",
+        nameKR:"아오이", nameEN:"Aoi", age:"17세", classInfo:"1학년 1-A", position:"학생",
+        personality:"도도함·무심·거리감",
+        quoteColor:"#8fd3ff",
+        quote:`난 그냥… 조용히 지나가고 싶어.`
+      },
+      { id:"SUZ-03", faction:"SUZURAN", img:"assets/suzuran/SUZ-03.png",
+        nameKR:"히나", nameEN:"Hina", age:"17세", classInfo:"1학년 1-A", position:"사고뭉치",
+        personality:"천진난만·직설·사고뭉치",
+        quoteColor:"#ff6aa6",
+        quote:`어? 나 때문이야? …아닌데!`
+      },
+      { id:"SUZ-04", faction:"SUZURAN", img:"assets/suzuran/SUZ-04.png",
+        nameKR:"나나세", nameEN:"Nanase", age:"18세", classInfo:"2학년 2-A", position:"2-A 대장",
+        personality:"밝음·명랑함·애교",
+        quoteColor:"#ffa84a",
+        quote:`그거 재밌겠다. 나도 껴!`
+      },
+      { id:"SUZ-05", faction:"SUZURAN", img:"assets/suzuran/SUZ-05.png",
+        nameKR:"코하루", nameEN:"Koharu", age:"18세", classInfo:"2학년 2-A", position:"힘숨찐",
+        personality:"소심·내성적·힘숨찐",
+        quoteColor:"#ffd1e8",
+        quote:`나… 나도 할 수 있어. 아마도…`
+      },
+      { id:"SUZ-06", faction:"SUZURAN", img:"assets/suzuran/SUZ-06.png",
+        nameKR:"미사키", nameEN:"Misaki", age:"18세", classInfo:"2학년 2-A", position:"정상인",
+        personality:"차분·무난·현실적",
+        quoteColor:"#c9c9c9",
+        quote:`결론만 말해. 시간 낭비는 싫어.`
+      },
+      { id:"SUZ-07", faction:"SUZURAN", img:"assets/suzuran/SUZ-07.png",
+        nameKR:"레이카", nameEN:"Reika", age:"19세", classInfo:"3학년 3-A", position:"슈즈란 통",
+        personality:"느긋·게으름·사교성",
+        quoteColor:"#ff3b3b",
+        quote:`나 참.. 귀찮게..\n정 안 될꺼같으면 날 부르라고.\n판치기나 하자.`
+      },
+      { id:"SUZ-08", faction:"SUZURAN", img:"assets/suzuran/SUZ-08.png",
+        nameKR:"미코", nameEN:"Miko", age:"19세", classInfo:"3학년 3-A", position:"소식통",
+        personality:"수다·광대기질·눈치없음",
+        quoteColor:"#b58cff",
+        quote:`나야 나! 모든 소식과 소문은 나 미코로부터 시작되는거라고!!`
+      },
+      { id:"SUZ-09", faction:"SUZURAN", img:"assets/suzuran/SUZ-09.png",
+        nameKR:"유메", nameEN:"Yume", age:"19세", classInfo:"3학년 3-B", position:"학생",
+        personality:"애교·감성·잘삐짐",
+        quoteColor:"#ffd6f2",
+        quote:`칭찬… 해주면 더 열심히 할 수도 있는데?`
+      },
+      { id:"SUZ-10", faction:"SUZURAN", img:"assets/suzuran/SUZ-10.png",
+        nameKR:"카에데", nameEN:"Kaede", age:"19세", classInfo:"3학년 3-B", position:"부통",
+        personality:"계산적·츤데레",
+        quoteColor:"#45d36a",
+        quote:`싸움을 피한다고? 너 게이냐?`
+      },
+
+      /* ========================= HOSEN ========================= */
+      { id:"HOS-01", faction:"HOSEN", img:"assets/hosen/hos-01.png",
+        nameKR:"미즈키", nameEN:"Mizuki", age:"17세", classInfo:"1학년 1-A", position:"1-A반 대장",
+        personality:"밝음·활발·선지킴·장난기",
+        quoteColor:"#56b6ff",
+        quote:`규칙은 지키되, 재미는 놓치지 말자!`
+      },
+      { id:"HOS-02", faction:"HOSEN", img:"assets/hosen/hos-02.png",
+        nameKR:"마이", nameEN:"Mai", age:"17세", classInfo:"1학년 1-A", position:"1-A반 학생",
+        personality:"차분·조용·규칙중시·단답",
+        quoteColor:"#a0ffcf",
+        quote:`쓸데없는 말, 필요 없어.`
+      },
+      { id:"HOS-03", faction:"HOSEN", img:"assets/hosen/hos-03.png",
+        nameKR:"아카리", nameEN:"Akari", age:"17세", classInfo:"1학년 1-A", position:"1-A반 학생",
+        personality:"츤데레·까칠·내향·표현서툼",
+        quoteColor:"#ff6aa6",
+        quote:`착각하지 마… 도와주는 거 아냐.`
+      },
+      { id:"HOS-04", faction:"HOSEN", img:"assets/hosen/hos-04.png",
+        nameKR:"아카네", nameEN:"Akane", age:"18세", classInfo:"2학년 2-A", position:"2-A반 대장",
+        personality:"무신경·방종·공격적·귀찮음",
+        quoteColor:"#ff8a3d",
+        quote:`질서? 그런 거 지키라고 있는 줄 몰랐는데.`
+      },
+      { id:"HOS-05", faction:"HOSEN", img:"assets/hosen/hos-05.png",
+        nameKR:"히비키", nameEN:"Hibiki", age:"18세", classInfo:"2학년 2-A", position:"2-A반 학생",
+        personality:"온화·배려·순함·걱정많음",
+        quoteColor:"#b58cff",
+        quote:`다친 데는 없어?… 잠깐만, 내가 볼게.`
+      },
+      { id:"HOS-06", faction:"HOSEN", img:"assets/hosen/hos-06.png",
+        nameKR:"유카", nameEN:"Yuka", age:"18세", classInfo:"2학년 2-A", position:"호셍 통 친동생",
+        personality:"유쾌·호기심·텐션높음·갸루",
+        quoteColor:"#ffd24d",
+        quote:`오~ 그거 뭐야? 나도 껴! 지금!`
+      },
+      { id:"HOS-07", faction:"HOSEN", img:"assets/hosen/hos-07.png",
+        nameKR:"유키", nameEN:"Yuki", age:"19세", classInfo:"3학년 3-A", position:"호셍 통",
+        personality:"엄격·책임감·통솔·단호",
+        quoteColor:"#ff3b3b",
+        quote:`질서는 지켜라. 예외는 없다.`
+      },
+      { id:"HOS-08", faction:"HOSEN", img:"assets/hosen/hos-08.png",
+        nameKR:"리코", nameEN:"Riko", age:"19세", classInfo:"3학년 3-A", position:"3-A반 학생",
+        personality:"장난기·활발·텐션·분위기메이커",
+        quoteColor:"#ff5df1",
+        quote:`야~ 분위기 죽였네? 내가 살려줄게!`
+      },
+      { id:"HOS-09", faction:"HOSEN", img:"assets/hosen/hos-09.png",
+        nameKR:"카나", nameEN:"Kana", age:"19세", classInfo:"3학년 3-B", position:"호셍 부통",
+        personality:"소심·성실·끈기·맷집",
+        quoteColor:"#45d36a",
+        quote:`나… 괜찮아. 아직… 안 쓰러졌어.`
+      },
+      { id:"HOS-10", faction:"HOSEN", img:"assets/hosen/hos-10.png",
+        nameKR:"우타", nameEN:"Uta", age:"19세", classInfo:"3학년 3-B", position:"호셍 소식통",
+        personality:"엉뚱·발랄·과다수다·울보",
+        quoteColor:"#7bdcff",
+        quote:`뭐어~? 누구 닮았다고?? 꺄하~ 기분탓이야!`
+      },
+
+      /* ========================= BUSO ========================= */
+      { id:"BUSO-01", faction:"BUSO", img:"assets/buso/BUSO-01.png",
+        nameKR:"류세이", nameEN:"Ryusei", age:"19세", classInfo:"슈즈란 자퇴", position:"연합원",
+        personality:"냉정·계산적·똑부러짐·거침없음 (계산형 싸움꾼)",
+        quoteColor:"#ff3b3b",
+        quote:`계산 끝났어. 남은 선택지는 하나지.`
+      },
+      { id:"BUSO-02", faction:"BUSO", img:"assets/buso/BUSO-02.png",
+        nameKR:"테츠야", nameEN:"Tetsuya", age:"19세", classInfo:"슈즈란 자퇴", position:"연합원",
+        personality:"쿨함·털털함·담담함·느긋함 (난폭형 싸움꾼)",
+        quoteColor:"#ff3b3b",
+        quote:`말은 필요 없어. 그냥 끝내자.`
+      },
+      { id:"BUSO-03", faction:"BUSO", img:"assets/buso/BUSO-03.png",
+        nameKR:"아야토", nameEN:"Ayato", age:"19세", classInfo:"호셍 자퇴", position:"연합원",
+        personality:"침착·논리적·부드러움·정중함 (말이 먼저인 타입)",
+        quoteColor:"#ff3b3b",
+        quote:`대화가 먼저죠. 듣지 않으면… 그다음은 간단합니다.`
+      },
+      { id:"BUSO-04", faction:"BUSO", img:"assets/buso/BUSO-04.png",
+        nameKR:"카제오", nameEN:"Kazeo", age:"19세", classInfo:"호셍 자퇴", position:"연합원 대장",
+        personality:"공격적·오만·비웃듯 거침없음 (선공형 파괴자)",
+        quoteColor:"#ff3b3b",
+        quote:`내가 먼저 간다. 막을 수 있으면 막아봐.`
+      },
+    ];
+
+    const factionLabelMap = {
+      SUZURAN: "슈즈란",
+      HOSEN: "호셍",
+      BUSO: "무장전선",
+    };
+
+    let activePeekCard = null;
+
+    function makeCard(c){
+      const div = document.createElement("div");
+      div.className = "charCard locked";
+      div.dataset.id = c.id;
+
+      div.innerHTML = `
+        <img class="thumb" src="${c.img}" alt="${c.id}">
+        <div class="glitchOverlay" aria-hidden="true"></div>
+        <div class="charOverlay">
+          <div class="charId">${c.id}</div>
+          <div class="charLine">${c.nameKR} · ${c.position}</div>
+        </div>
+      `;
+
+      div.addEventListener("click", ()=>{
+        if(activePeekCard && activePeekCard !== div){
+          activePeekCard.classList.remove("peek","revealFlash");
+        }
+        activePeekCard = div;
+        div.classList.add("peek","revealFlash");
+        window.setTimeout(()=> div.classList.remove("revealFlash"), 420);
+
+        openModal(c);
+      });
+
+      return div;
+    }
+
+    function render(){
+      if(!currentFaction){
+        clearCharacters();
+        return;
+      }
+
+      groupsEl.innerHTML = "";
+      const filtered = characters.filter(c=> c.faction === currentFaction);
+
+      const head = document.createElement("div");
+      head.className = "groupHead";
+      head.innerHTML = `
+        <div class="groupName">${factionLabelMap[currentFaction] || currentFaction}</div>
+        <div class="groupCount">${filtered.length}</div>
+      `;
+      groupsEl.appendChild(head);
+
+      const grid = document.createElement("div");
+      grid.className = "grid";
+      filtered.forEach(c=> grid.appendChild(makeCard(c)));
+      groupsEl.appendChild(grid);
+    }
+
+    if(tabsEl){
+      tabsEl.addEventListener("click", (e)=>{
+        const btn = e.target.closest(".tabBtn");
+        if(!btn) return;
+
+        clearTabActive();
+        btn.classList.add("active");
+
+        currentFaction = btn.dataset.f;
+        hasSelectedFaction = true;
+
+        render();
+      });
+    }
+
+    // =========================
+    // MODAL
+    // =========================
+    const backdrop = document.getElementById("backdrop");
+    const closeBtn = document.getElementById("closeBtn");
+
+    const portrait = document.getElementById("portrait");
+    const factionText = document.getElementById("factionText");
+    const idText = document.getElementById("idText");
+    const nameKR = document.getElementById("nameKR");
+    const nameEN = document.getElementById("nameEN");
+
+    const rowClassAge = document.getElementById("rowClassAge");
+    const rowPos = document.getElementById("rowPos");
+    const rowPer = document.getElementById("rowPer");
+
+    const quoteBox = document.getElementById("rowQuote");
+    const quoteText = document.getElementById("quoteText");
+
+    const factionDot = document.getElementById("factionDot");
+
+    function openModal(c){
+      portrait.src = c.img;
+
+      factionText.textContent = factionLabelMap[c.faction] || (c.faction || "-");
+      idText.textContent = c.id || "-";
+      nameKR.textContent = c.nameKR || "-";
+      nameEN.textContent = c.nameEN || "";
+
+      factionDot.classList.remove("blue","red");
+      if(c.faction === "HOSEN") factionDot.classList.add("blue");
+      if(c.faction === "BUSO") factionDot.classList.add("red");
+
+      rowClassAge.textContent = `${c.classInfo || "-"} / ${c.age || "-"}`;
+      rowPos.textContent = c.position || "-";
+      rowPer.textContent = c.personality || "-";
+
+      const qc = c.quoteColor || "#ffcc00";
+      quoteBox.style.setProperty("--quoteColor", qc);
+      quoteText.textContent = c.quote || "…";
+
+      backdrop.classList.add("show");
+      backdrop.setAttribute("aria-hidden", "false");
+      document.body.style.overflow = "hidden";
+    }
+
+    function closeModal(){
+
+      backdrop.classList.remove("show");
+      backdrop.setAttribute("aria-hidden", "true");
+      document.body.style.overflow = "";
+
+      if(activePeekCard){
+        activePeekCard.classList.remove("peek","revealFlash");
+        activePeekCard = null;
+      }
+    }
+
+    closeBtn.addEventListener("click", closeModal);
+    backdrop.addEventListener("click", (e)=>{
+      if(e.target === backdrop) closeModal();
+    });
+    window.addEventListener("keydown", (e)=>{
+      if(e.key === "Escape") closeModal();
+    });
+  </script>
+</body>
+</html>
+```0
